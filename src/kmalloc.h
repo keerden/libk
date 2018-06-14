@@ -6,6 +6,8 @@
 
 
 
+  
+
 
 /***
  * Chunk definition
@@ -18,28 +20,6 @@ struct kmalloc_chunk {
     struct kmalloc_chunk*   prev;
 };
 
-typedef struct kmalloc_chunk kmchunk;
-typedef struct kmalloc_chunk* kmchunk_ptr;
-
-
-#define PINUSE 1
-#define CINUSE 2
-#define FLAGMASK 0x00000007
-
-#define GETCHUNKSIZE(x) (x & ~FLAGMASK)
-
-#define CHUNK_PAYLOAD(chunk)    ((void *) ((uint8_t *) chunk + offsetof(struct kmalloc_chunk, next)))
-#define PAYLOAD_CHUNK(ptr)      ((kmchunk_ptr) ((uint8_t *) ptr - offsetof(struct kmalloc_chunk, next)))
-
-#define CHUNK_OVERHEAD (sizeof(size_t))
-#define CHUNK_ALIGN_ON        8
-#define MINCHUNKSIZE          16
-#define SBIN_THRESHOLD        256
-
-#define CHUNKALIGN(x)         (((x) + CHUNK_ALIGN_ON - 1) & ~(CHUNK_ALIGN_ON - 1))
-#define CHUNKFLOOR(x)         ((x) & ~(CHUNK_ALIGN_ON - 1))
-
-#define SBIN_COUNT ((SBIN_THRESHOLD - MINCHUNKSIZE) / CHUNK_ALIGN_ON) + 1
 
 
 struct kmalloc_tree_chunk {
@@ -53,20 +33,71 @@ struct kmalloc_tree_chunk {
     struct kmalloc_tree_chunk*   parent;
 };
 
+typedef struct kmalloc_chunk kmchunk;
+typedef struct kmalloc_chunk* kmchunk_ptr;
 typedef struct kmalloc_tree_chunk ktchunk;
 typedef struct kmalloc_tree_chunk* ktchunk_ptr;
 
+typedef unsigned int binmap_t;
 
 
+/******* size_t constants ********/
+#define SIZE_T_ZERO         ((size_t)0)
+#define SIZE_T_ONE          ((size_t)1)
+#define SIZE_T_TWO          ((size_t)2)
+#define SIZE_T_FOUR         ((size_t)4)
+#define SIZE_T_SIZE         (sizeof(size_t))
+#define TWO_SIZE_T_SIZES    (SIZE_T_SIZE<<1)
+#define FOUR_SIZE_T_SIZES   (SIZE_T_SIZE<<2)
+#define SIX_SIZE_T_SIZES    (FOUR_SIZE_T_SIZES+TWO_SIZE_T_SIZES)
+#define HALF_MAX_SIZE_T     (MAX_SIZE_T / 2U)
 
 
+/****** chunks *******/
+
+#define PINUSE      (0x1U)
+#define CINUSE      (0x2U)
+#define FLAGMASK    (0x00000007U)
+
+#define CHUNK_OVERHEAD        (SIZE_T_SIZE)
+#define CHUNK_ALIGN_ON        (8U)
+#define CHUNK_ALIGN_MASK      (CHUNK_ALIGN_ON - 1)
+#define MINCHUNKSIZE          (16U)
+#define DUMMYSIZE             (CHUNK_ALIGN_ON)
 
 
+#define GETCHUNKSIZE(x)         (x & ~FLAGMASK)
+#define CHUNK_PAYLOAD(chunk)    ((void *) ((uint8_t *) chunk + offsetof(struct kmalloc_chunk, next)))
+#define PAYLOAD_CHUNK(ptr)      ((kmchunk_ptr) ((uint8_t *) ptr - offsetof(struct kmalloc_chunk, next)))
+#define CHUNKALIGN(x)           (((x) + CHUNK_ALIGN_ON - 1) & ~CHUNK_ALIGN_MASK)
+#define CHUNKFLOOR(x)           ((x) & ~CHUNK_ALIGN_MASK)
+
+/******* Bin types, widths and sizes ********/
+#define NSBINS            (32U)
+#define NTBINS            (32U)
+#define SBIN_SHIFT        (3U)
+#define SBIN_WIDTH        (SIZE_T_ONE << SBIN_SHIFT)
+#define TBIN_SHIFT        (8U)
+#define MIN_LARGE_SIZE    (SIZE_T_ONE << TBIN_SHIFT)
+#define MAX_SMALL_SIZE    (MIN_LARGE_SIZE - SIZE_T_ONE)
+#define MAX_SMALL_REQUEST (MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD)
+
+/******* smallbins ************/
+#define small_index(s)      ((s) >> SBIN_SHIFT)
+#define small_index2size(i) ((i) << SBIN_SHIFT)
+#define MIN_SMALL_INDEX     (small_index(MINCHUNKSIZE))
 
 struct kmalloc_state {
     void *heap_start;
     size_t heap_size;
-    kmchunk_ptr bin[SBIN_COUNT];
+    binmap_t    sbinmap;
+    binmap_t    tbinmap;
+    kmchunk_ptr sbin[NSBINS];
+    kmchunk_ptr tbin[NTBINS];
+    kmchunk_ptr dVictim;
+    size_t      dVictimSize;
+    kmchunk_ptr topChunk;
+    size_t      topChunkSize;
 };
 
 

@@ -9,14 +9,6 @@
 
 
 
-static void* kmalloc_chunk_frombin(int bin);
-static void kmalloc_chunk_tobin(kmchunk_ptr chunk);
-static void* kmalloc_split_chunk_frombin(int bin, size_t size);
-
-
-
-
-
 void hexDump(char *desc, void *addr, int len) ;
 
 
@@ -27,33 +19,10 @@ struct kmalloc_state kmalloc_debug_getstate(void){
     return kmstate;
 }
 
-/*int mmain()
-{
-   char* test, *test2, *test3;
-   printf("-- Initialazing heap\n");
-   kmalloc_init((void *) heap, HEAPSIZE);
-   test = kmalloc(24 * sizeof(char));
-   strcpy(test, "(Test 1234567890 acdef)");
-   test2 = kmalloc(24 * sizeof(char));
-   strcpy(test2, "(%%%%%%%%%%%%%%%%%%%%%)");
-   kfree(test2);
-   kfree(test);
-   printf("-- Bins \n");
-   for(int i = 0; i < SBIN_COUNT; i++)
-    {;
-        printf("\t bin[%d] size: %d,  pointer: %08X \n", i, i * CHUNK_ALIGN_ON + MINCHUNKSIZE,(int) kmstate.bin[i] );
-    }
-   
-
-   hexDump("-- Heap:", heap, HEAPSIZE);
-
-
-   return 0;
-}*/
 
 void kmalloc_init(void *heap_addr, size_t heap_size)
 {
-    kmchunk_ptr chunk;
+/*    kmchunk_ptr chunk;
     size_t chunksize;
     
 //init kmstate
@@ -80,7 +49,7 @@ if(chunksize > SBIN_THRESHOLD)
 //init bins
 for(size_t i = 0; i < SBIN_COUNT; i++)
 {
-    kmstate.bin[i] = (i == calc_bin_no(chunksize))? chunk : NULL;
+    kmstate.sbin[i] = (i == calc_bin_no(chunksize))? chunk : NULL;
 }
 
 
@@ -89,7 +58,7 @@ for(size_t i = 0; i < SBIN_COUNT; i++)
     chunk = (kmchunk_ptr) ((uint8_t*)chunk + chunksize);
     chunk->prev_foot = chunksize;
     chunk->header = 0;
-
+*/
 }
 
 
@@ -107,7 +76,7 @@ for(size_t i = 0; i < SBIN_COUNT; i++)
 
 void* kmalloc (size_t size) 
 {
-
+/*
     void* result;
     kmchunk_ptr chunk;
 
@@ -120,14 +89,14 @@ void* kmalloc (size_t size)
 
 
     int bin = calc_bin_no(wanted_size);
-    chunk = kmstate.bin[bin];
+    chunk = kmstate.sbin[bin];
     
     if(chunk != NULL){
         result = kmalloc_chunk_frombin(bin);
     }else {
         while(bin < SBIN_COUNT && chunk == NULL){
             bin++;
-            chunk = kmstate.bin[bin];
+            chunk = kmstate.sbin[bin];
         }
 
         if(chunk != NULL) {
@@ -139,6 +108,7 @@ void* kmalloc (size_t size)
 
     }
    return result;
+   */
 }
 
 
@@ -155,6 +125,7 @@ void* kmalloc (size_t size)
 
 void kfree(void *ptr) 
 {
+    /*
     kmchunk_ptr coalescptr, nextchunk;
     size_t newsize, cursize;
     int bin;
@@ -175,7 +146,7 @@ void kfree(void *ptr)
         bin =  calc_bin_no(cursize);  
         
         //remove chunk from list
-        kmalloc_dllist_remove_intern(coalescptr, &kmstate.bin[bin]);
+        kmalloc_dllist_remove_intern(coalescptr, &kmstate.sbin[bin]);
 
         newsize += cursize;
     } else{
@@ -191,7 +162,7 @@ void kfree(void *ptr)
             bin =  calc_bin_no(cursize);  
             
             //remove chunk from list
-            kmalloc_dllist_remove_intern(nextchunk, &kmstate.bin[bin]);
+            kmalloc_dllist_remove_intern(nextchunk, &kmstate.sbin[bin]);
             newsize += cursize;       
     }
 
@@ -203,145 +174,8 @@ void kfree(void *ptr)
         nextchunk->header = nextchunk->header & ~PINUSE;
     //add to correct bin and list
     kmalloc_chunk_tobin(coalescptr);
-
+    */
 }
-
-/****
- * static void* kmalloc_chunk_frombin(int bin)
- * 
- * Removes first chunk from bin list and mark it as used 
- * 
- * Input:
- *      int bin:  Number of bin to take a chunk from
- * 
- * Returns: 
- *      A pointer to the payload of the chunk, or NULL if failure.
- *****/
-
-static void* kmalloc_chunk_frombin(int bin) 
-{
-    kmchunk_ptr chunk;
-    kmchunk_ptr nextchunk;
-    
-    if(bin < 0 || bin >= SBIN_COUNT)
-        return NULL;
-
-    //remove chunk from list
-    chunk = kmalloc_dllist_remove(&(kmstate.bin[bin]));
-    
-    if(chunk == NULL)
-        return NULL;
-
-    nextchunk = (kmchunk_ptr) ((uint8_t*) chunk + GETCHUNKSIZE(chunk->header));
-    if(nextchunk->header != 0) nextchunk->header |= PINUSE;
-    chunk->header |= CINUSE;
-
-    return CHUNK_PAYLOAD(chunk);
-}
-
-
-
-/****
- * static void* kmalloc_split_chunk_frombin(int bin, size_t size)
- * 
- * Removes first chunk from bin list, splits it according to given size
- * allocates the first part an adds the last part to the right bin.
- * When size of the  last part is less than the minimum chunk size, 
- * no split is performed.
- * 
- * Input:
- *      int bin:  Number of bin to take a chunk from
- *      size_t size:  size of the requested chunk. 
- * 
- * Returns: 
- *      A pointer to the payload of the chunk, or NULL after failure.
- *****/
-
-static void* kmalloc_split_chunk_frombin(int bin, size_t size) 
-{
-    kmchunk_ptr chunk;
-    kmchunk_ptr newchunk;
-    kmchunk_ptr nextchunk;
-
-    size_t newsize;
-
-
-    if(bin < 0 || bin >=SBIN_COUNT )
-        return NULL;
-    
-    if(kmstate.bin[bin] == NULL)
-        return NULL;
-    
-    size = chunksize_round(size);
-    chunk = kmstate.bin[bin];
-
-    if (GETCHUNKSIZE(chunk->header) < size)  //chunk is somehow too small, this should not happen
-        return NULL;
-
-    newsize = GETCHUNKSIZE(chunk->header) - size;
-    
-    if (newsize < MINCHUNKSIZE)         //if remainder is too small, just allocate whole chunk
-        return kmalloc_chunk_frombin(bin);
-
-   
-    //remove chunk from list
-
-    if(kmalloc_dllist_remove(&kmstate.bin[bin]) == NULL)
-        return NULL;
-
-    //split
-    newchunk = (kmchunk_ptr) ((uint8_t*) chunk + size);
-    newchunk->header = newsize |= PINUSE;
-
-    //modify size for next chunk
-    nextchunk = (kmchunk_ptr) ((uint8_t*) chunk + GETCHUNKSIZE(chunk->header));
-    nextchunk->prev_foot = newsize;
-
-    //update current current chunk
-    chunk->header = size | PINUSE | CINUSE;  //chunk was free, this implies previous was used
-
-    //add new chunk to correct freelist
-    kmalloc_chunk_tobin(newchunk);
-
-    return CHUNK_PAYLOAD(chunk);
-
-
-}
-
-
-
-
-static void kmalloc_chunk_tobin(kmchunk_ptr chunk)
-{
-    int bin = calc_bin_no(GETCHUNKSIZE(chunk->header));
-
-    kmalloc_dllist_add(chunk, &kmstate.bin[bin]);
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 void hexDump(char *desc, void *addr, int len) 
