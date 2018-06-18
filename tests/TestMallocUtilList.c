@@ -47,6 +47,27 @@ void test_ListAddMultiple(void)
 
 }
 
+void test_ListAddEndMultiple(void)
+{
+
+    kmchunk_ptr head = NULL;
+    kmchunk chunk1;
+    kmchunk chunk2;
+    kmchunk chunk3;
+
+    kmalloc_dllist_add(&chunk1, &head);     //1
+    kmalloc_dllist_add_end(&chunk2, head);  //1 - 2
+    kmalloc_dllist_add_end(&chunk3, head);  //1 - 2 - 3
+    TEST_ASSERT_EQUAL_PTR(&chunk1, head);
+    TEST_ASSERT_EQUAL_PTR(&chunk2, chunk1.next);
+    TEST_ASSERT_EQUAL_PTR(&chunk3, chunk2.next);
+    TEST_ASSERT_EQUAL_PTR(&chunk1, chunk3.next);
+    TEST_ASSERT_EQUAL_PTR(&chunk3, chunk1.prev);
+    TEST_ASSERT_EQUAL_PTR(&chunk1, chunk2.prev);
+    TEST_ASSERT_EQUAL_PTR(&chunk2, chunk3.prev);
+
+}
+
 void test_ListRemoveSingle(void)
 {
 

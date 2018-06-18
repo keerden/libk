@@ -27,7 +27,7 @@ int check_heap_integrety(void *heap, size_t heapsize) {
 
     while(chunk->header != 0) {
 
-        size = GETCHUNKSIZE(chunk->header);
+        size = GETCHUNKSIZE(chunk);
         if(((size_t) chunk + size) > ((size_t) heap + heapsize)) REPORT("Chunksize overflows heap", chunk, heap);
         if(size < MINCHUNKSIZE) REPORT("Chunksize too small", chunk, heap);
         if(size % CHUNK_ALIGN_ON) REPORT("Chunksize not aligned", chunk, heap);
@@ -79,8 +79,10 @@ int check_heap_layout   (  test_chunkinfo *expected,
 
     for(index = 0; index < testsize; index++) {
         test = expected[index]; 
-        size = GETCHUNKSIZE(chunk->header);
+        size = GETCHUNKSIZE(chunk);
         if(test.size != size) REPORT("Chunksize mismatch", chunk, heap);
+        if((size_t)chunk + size > (size_t) heapsize) REPORT("Chunk overflows heap", chunk, heap);
+
         if(test.type == USED) {
             if(!(chunk->header & CINUSE)) REPORT("Chunk should be in use", chunk, heap);
             if(test.payload != NULL && test.payload != CHUNK_PAYLOAD(chunk)) REPORT("Payload address mismatch", chunk, heap);

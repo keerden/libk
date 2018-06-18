@@ -66,7 +66,7 @@ typedef unsigned int binmap_t;
 #define DUMMYSIZE             (CHUNK_ALIGN_ON)
 
 
-#define GETCHUNKSIZE(x)         (x & ~FLAGMASK)
+#define GETCHUNKSIZE(c)         (((c)->header) & ~FLAGMASK)
 #define CHUNK_PAYLOAD(chunk)    ((void *) ((uint8_t *) chunk + offsetof(struct kmalloc_chunk, next)))
 #define PAYLOAD_CHUNK(ptr)      ((kmchunk_ptr) ((uint8_t *) ptr - offsetof(struct kmalloc_chunk, next)))
 #define CHUNKALIGN(x)           (((x) + CHUNK_ALIGN_ON - 1) & ~CHUNK_ALIGN_MASK)

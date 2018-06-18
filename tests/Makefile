@@ -49,7 +49,7 @@ default: $(TEST_TARGETS)
 clean:
 
 clean-all:
-	rm $(TEST_TARGETS)
+	@rm $(TEST_TARGETS)
 
 test: default
 	@ X=0;							\
@@ -63,10 +63,10 @@ test: default
 
 
 %.$(TARGET_EXTENSION): %.c %.runner.c $(CFILES) $(HFILES) 
-	 $(C_COMPILER) $(CFLAGS) $(UNITY_DIR)/src/unity.c $(CFILES) $< $(word 2,$^)  -lk  -o $@
+	 @$(C_COMPILER) $(CFLAGS) $(UNITY_DIR)/src/unity.c $(CFILES) $< $(word 2,$^)  -lk  -o $@
 
 %.runner.c: %.c $(HFILES) 
-	ruby $(UNITY_DIR)/auto/generate_test_runner.rb $< $@
+	@ruby $(UNITY_DIR)/auto/generate_test_runner.rb $< $@
 
 
 .PHONY: all default clean clean-all test
