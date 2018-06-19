@@ -50,6 +50,7 @@ typedef unsigned int binmap_t;
 #define TWO_SIZE_T_SIZES    (SIZE_T_SIZE<<1)
 #define FOUR_SIZE_T_SIZES   (SIZE_T_SIZE<<2)
 #define SIX_SIZE_T_SIZES    (FOUR_SIZE_T_SIZES+TWO_SIZE_T_SIZES)
+#define MAX_SIZE_T          (~(size_t)0)
 #define HALF_MAX_SIZE_T     (MAX_SIZE_T / 2U)
 
 

@@ -29,7 +29,7 @@
         ((chunk)->parent)->right = (newchild);\
 }
 
-
+static ktchunk_ptr find_smallest_subtree(ktchunk_ptr strt);
 
 /****
  *  void kmalloc_dllist_add(kmchunk_ptr chunk, kmchunk_ptr head)
@@ -245,6 +245,10 @@ void kmalloc_tree_insert(ktchunk_ptr chunk, ktchunk_ptr *root, int depth) {
 
 void kmalloc_tree_remove(ktchunk_ptr chunk, ktchunk_ptr *root) {
     ktchunk_ptr replacement;
+
+    if(chunk == NULL || root == NULL)
+        return;
+
     if(ktchunk_is_in_list(chunk)) {
         if(chunk == *root) {
             replacement = chunk->next;
@@ -292,4 +296,123 @@ void kmalloc_tree_remove(ktchunk_ptr chunk, ktchunk_ptr *root) {
 
 
     }
+}
+
+/****
+ *  ktchunk_ptr kmalloc_tree_get_best_fit(size_t size, ktchunk_ptr *root, int depth);
+ * 
+ *  Removes the best fitting chunk from the tree.
+ *
+ *  inputs
+ *      size_t size        -  wanted chunksize
+ *      kmchunk_ptr *root  -  pointer to the root address of the tree
+ *      int depth          -  max depth of tree
+ * 
+ *  returns
+ *      a ktchunk_ptr pointing to the best fitting chunk
+ * 
+ * */
+
+ktchunk_ptr kmalloc_tree_get_best_fit(size_t size, ktchunk_ptr *root, int depth){
+
+    ktchunk_ptr cur, parent, smallest_chunk = NULL;
+    size_t smallest_size;    
+
+    if(depth <= 0 || root == NULL)
+        return NULL;
+    if(*root == NULL)
+        return NULL;
+
+    cur = *root;
+
+    while(cur != NULL) {
+        if(size == GETCHUNKSIZE(cur)){
+            kmalloc_tree_remove(cur, root);
+            return cur;
+        }
+
+        if(GETCHUNKSIZE(cur) > size){
+            if(smallest_chunk == NULL || GETCHUNKSIZE(cur) < smallest_size){
+                smallest_chunk = cur;
+                smallest_size = GETCHUNKSIZE(cur);
+            }
+        }
+        parent = cur;
+        if(size & (SIZE_T_ONE << (depth - 1)))
+            cur = cur->right;
+        else
+            cur = cur->left;
+        depth--;
+        if(depth < 0)   
+            break;
+    }
+
+    //if we end up here, we didn find an exact fit. so letś find the best fit
+
+    //first step up until we either found the smallest node, or until we could go right
+    while(parent->right == NULL || parent->right == cur) {
+        if(parent == smallest_chunk){
+            kmalloc_tree_remove(parent, root);
+            return parent;
+        }
+        if(parent->parent == NULL)
+            return NULL;
+        cur = parent;
+        parent = parent->parent;
+    }
+
+    //if we are here, parent->right holds a subtree with fitting nodes. get the smallest.
+    cur = find_smallest_subtree(parent->right);
+    kmalloc_tree_remove(cur, root);
+
+    return cur;
+}
+
+/****
+ *  ktchunk_ptr kmalloc_tree_get_smallest(ktchunk_ptr *root);
+ * 
+ *  Removes the smallest chunk from the tree.
+ *
+ *  inputs
+ *      kmchunk_ptr *root  -  pointer to the root address of the tree
+ * 
+ *  returns
+ *      a ktchunk_ptr pointing to the smallest chunk
+ * 
+ * */
+
+ktchunk_ptr kmalloc_tree_get_smallest(ktchunk_ptr *root) {
+    
+    ktchunk_ptr smallest;
+
+    if(root == NULL || *root == NULL)
+       return NULL;
+
+    smallest =  find_smallest_subtree(*root);
+    kmalloc_tree_remove(smallest, root);
+
+    return smallest;
+}
+
+
+static ktchunk_ptr find_smallest_subtree(ktchunk_ptr chunk) {
+    ktchunk_ptr cur, smallest_chunk = NULL;
+    size_t smallest_size;
+    
+    if(chunk == NULL)
+        return NULL;
+    
+    cur = chunk;
+    smallest_chunk = cur;
+    smallest_size = GETCHUNKSIZE(cur);
+
+    while(!ktchunk_is_leave(cur)){
+        cur = (cur->left != NULL) ? cur->left : cur->right;
+        if(GETCHUNKSIZE(cur) < smallest_size){
+            smallest_chunk = cur;
+            smallest_size = GETCHUNKSIZE(cur);
+        }
+    }
+
+    return smallest_chunk;
 }
