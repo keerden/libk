@@ -6,13 +6,19 @@
 #include <string.h>
 
 
-
-
-
-void hexDump(char *desc, void *addr, int len) ;
+//void hexDump(char *desc, void *addr, int len) ;
 
 
 static struct kmalloc_state kmstate;
+
+static void* allocate_sbin(binmap_t size);
+static void* split_sbin(binmap_t index, size_t chunksize);
+static void* allocate_dv(size_t chunksize);
+static void* allocate_smallest_tbin(size_t chunksize);
+static void* split_top(size_t chunksize);
+static void replace_dv(kmchunk_ptr new);
+
+
 
 
 struct kmalloc_state kmalloc_debug_getstate(void){
@@ -22,43 +28,43 @@ struct kmalloc_state kmalloc_debug_getstate(void){
 
 void kmalloc_init(void *heap_addr, size_t heap_size)
 {
-/*    kmchunk_ptr chunk;
-    size_t chunksize;
+    kmchunk_ptr top_chunk;
+    size_t top_size, offset;
     
-//init kmstate
-    
-    
-    kmstate.heap_size = heap_size;
-    kmstate.heap_start = heap_addr;
-
-    
-
-//init empty topchunk 
-
-    chunk = (kmchunk_ptr) heap_addr;
-    chunksize = CHUNKFLOOR(heap_size - 1);
-
-//todo: largebins
-if(chunksize > SBIN_THRESHOLD)
-    chunksize = SBIN_THRESHOLD;
-
-    chunk->header = chunksize | PINUSE;
-    chunk->prev = chunk;
-    chunk->next = chunk;
-
-//init bins
-for(size_t i = 0; i < SBIN_COUNT; i++)
-{
-    kmstate.sbin[i] = (i == calc_bin_no(chunksize))? chunk : NULL;
-}
+    if(heap_addr == NULL)
+        return;
 
 
+    top_chunk = CHUNKALIGN(heap_addr);
+    offset = (size_t )top_chunk - (size_t ) heap_addr;
 
-//init dummy end 'chunk' 
-    chunk = (kmchunk_ptr) ((uint8_t*)chunk + chunksize);
-    chunk->prev_foot = chunksize;
-    chunk->header = 0;
-*/
+
+    if((offset + MINCHUNKSIZE + DUMMYSIZE) > heap_size)
+        return;
+
+    top_size = CHUNKFLOOR(heap_size - offset - DUMMYSIZE);
+
+
+    top_chunk->header = top_size | PINUSE;
+    top_chunk->next = top_chunk->prev = top_chunk;
+
+
+    //set dummy
+    NEXTCHUNK(top_chunk)->prev_foot = top_size;
+    NEXTCHUNK(top_chunk)->header = 0;
+
+    kmstate.heap_start = top_chunk;
+    kmstate.heap_size = heap_size - offset;
+    kmstate.sbinmap = kmstate.tbinmap = 0;
+    for(size_t i = 0; i < NSBINS; i++)
+        kmstate.sbin[i] = NULL;
+    for(size_t i = 0; i < NTBINS; i++)
+        kmstate.tbin[i] = NULL;
+    kmstate.dVictim = NULL;
+    kmstate.dVictimSize = 0;
+    kmstate.topChunk = top_chunk;
+    kmstate.topChunkSize = top_size;
+    kmstate.magic = KMALLOC_STATE_MAGIC;
 }
 
 
@@ -76,39 +82,56 @@ for(size_t i = 0; i < SBIN_COUNT; i++)
 
 void* kmalloc (size_t size) 
 {
-/*
-    void* result;
-    kmchunk_ptr chunk;
+    size_t chunksize;
+    binmap_t index, bits;
+    void* result = NULL;
 
-    // calculate chunksize and find suitable bin
-    size_t wanted_size = calc_chunksize(size);
 
-    if(wanted_size > SBIN_THRESHOLD)     //simple implementation for now: only support small bins
+    if(!KMALLOC_IS_INIT(kmstate))
+        return NULL;
+    if(REQUESTOVERFLOW(size))
         return NULL;
 
+    chunksize = REQUEST2SIZE(size);
 
-
-    int bin = calc_bin_no(wanted_size);
-    chunk = kmstate.sbin[bin];
-    
-    if(chunk != NULL){
-        result = kmalloc_chunk_frombin(bin);
-    }else {
-        while(bin < SBIN_COUNT && chunk == NULL){
-            bin++;
-            chunk = kmstate.sbin[bin];
-        }
-
-        if(chunk != NULL) {
-            result = kmalloc_split_chunk_frombin(bin, wanted_size);
+    if(chunksize < MIN_LARGE_SIZE){ // use small bins
+        index = small_index(chunksize);
+        bits = (kmstate.sbinmap >> index) & 0x3U;  
+        if(bits){   //check if there could be a remainderless fit
+            index += ~bits & 1;     //increase index if exact matching bin is empty
+            result = allocate_sbin(index);
+        } else if(chunksize <= kmstate.dVictimSize){
+            //use dv
+            result = allocate_dv(chunksize);
         } else {
-            //out of memory
-            result = NULL;
+            //find a suitable bin, or use top
+            index += 2;
+            bits = kmstate.sbinmap >> index;
+            while(bits && !(bits & 1)){
+                index++;
+                bits >>=1;
+            }
+            if(bits){
+                result = split_sbin(index, chunksize);
+            } else if(kmstate.tbinmap){
+                result = allocate_smallest_tbin(chunksize);
+            } else {
+                result = split_top(chunksize);
+            }
         }
+
+    }else{  //use tree bins
+
 
     }
-   return result;
-   */
+
+    if(result == NULL){
+        //handle out of mem
+    }
+
+
+
+    return result;
 }
 
 
@@ -125,101 +148,213 @@ void* kmalloc (size_t size)
 
 void kfree(void *ptr) 
 {
-    /*
-    kmchunk_ptr coalescptr, nextchunk;
-    size_t newsize, cursize;
-    int bin;
-    kmchunk_ptr chunk = PAYLOAD_CHUNK(ptr);
-    if(((void*) chunk) < kmstate.heap_start)    //no heap address
-        return;
-    if(((void *) chunk ) >= ((void *) ( (uint8_t*)kmstate.heap_start + kmstate.heap_size))) //pointer past end of heap
-        return;
-    
-    if(!(chunk->header & CINUSE)) //chunk not in use
-        return;
+    kmchunk_ptr freeptr, prev, next, chunk = PAYLOAD_CHUNK(ptr);   
 
-    newsize = GETCHUNKSIZE(chunk->header);
-    //check free block before
-    if(!(chunk->header & PINUSE)){  
-        cursize = chunk->prev_foot;
-        coalescptr = (kmchunk_ptr) ((uint8_t*) chunk - cursize);
-        bin =  calc_bin_no(cursize);  
-        
-        //remove chunk from list
-        kmalloc_dllist_remove_intern(coalescptr, &kmstate.sbin[bin]);
+    size_t freesize, csize, index;
 
-        newsize += cursize;
-    } else{
-        coalescptr = chunk;
-    }
-
-    //check free block after chunk
-    nextchunk = (kmchunk_ptr) ((uint8_t*) chunk + GETCHUNKSIZE(chunk->header));
-
-    if(!(nextchunk->header & CINUSE) && nextchunk->header != 0)   //if next is not in use, and not the end chunk
+    if(!ADDRESS_OK(chunk, kmstate) || !IS_INUSE(chunk)) 
     {
-            cursize = GETCHUNKSIZE(nextchunk->header);
-            bin =  calc_bin_no(cursize);  
-            
-            //remove chunk from list
-            kmalloc_dllist_remove_intern(nextchunk, &kmstate.sbin[bin]);
-            newsize += cursize;       
+        return;
     }
+    
+    freeptr = chunk;
+    freesize = GETCHUNKSIZE(chunk);
 
-    coalescptr->header = newsize | PINUSE;
-    nextchunk = (kmchunk_ptr) ((uint8_t*) coalescptr + newsize); 
-    //set header and size in next block
-    nextchunk->prev_foot = newsize;
-    if(nextchunk->header != 0)
-        nextchunk->header = nextchunk->header & ~PINUSE;
-    //add to correct bin and list
-    kmalloc_chunk_tobin(coalescptr);
-    */
-}
+    if(!PREV_INUSE(chunk))
+    {
+        csize = chunk->prev_foot;
+        prev = PREVCHUNK(chunk);
+        if(!ADDRESS_OK(prev, kmstate) ||  GETCHUNKSIZE(prev) != csize ||  IS_INUSE(prev)) {
+            return;
+        }
+        freeptr = prev;
+        freesize += csize;
 
+        if(kmstate.dVictim != prev){    //if not dv, remove prev from bin
+            if(csize < MIN_LARGE_SIZE){ 
+                index = small_index(csize);
+                kmalloc_dllist_remove(&kmstate.sbin[index]);
+                if(kmstate.sbin[index] == NULL)
+                    kmstate.sbinmap &= ~(SIZE_T_ONE << index);
 
-void hexDump(char *desc, void *addr, int len) 
-{
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-
-    // Output description if given.
-    if (desc != NULL)
-        printf ("%s:\n", desc);
-
-    // Process every byte in the data.
-    for (i = 0; i < len; i++) {
-        // Multiple of 16 means new line (with line offset).
-
-        if ((i % 16) == 0) {
-            // Just don't print ASCII for the zeroth line.
-            if (i != 0)
-                printf("  %s\n", buff);
-
-            // Output the offset.
-            printf("  %08x ", (int) &pc[i]);
+            } else {
+                //treebins
+            }
         }
 
-        // Now the hex code for the specific character.
-        printf(" %02x", pc[i]);
+    }
+    next = NEXTCHUNK(chunk);
 
-        // And store a printable ASCII character for later.
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e)) {
-            buff[i % 16] = '.';
+    if(!ADDRESS_OK(next, kmstate))
+        return;
+
+    if(!IS_INUSE(next)){
+        csize = GETCHUNKSIZE(next);
+        freesize += csize;
+        freeptr->header = freesize | PREV_INUSE(freeptr);
+        CHUNKOFFSET(freeptr, freesize)->prev_foot = freesize;
+        if(next == kmstate.topChunk){
+            if(freeptr == kmstate.dVictim){
+                kmstate.dVictim = NULL;
+                kmstate.dVictimSize = 0;
+            }
+            kmstate.topChunk = freeptr;
+            kmstate.topChunkSize = freesize;
+        } else if(next == kmstate.dVictim){
+            kmstate.dVictim = freeptr;
+            kmstate.dVictimSize = freesize;
         } else {
-            buff[i % 16] = pc[i];
+            //unlink
+            if(csize < MIN_LARGE_SIZE){ 
+                index = small_index(csize);
+                kmalloc_dllist_remove(&kmstate.sbin[index]);
+                if(kmstate.sbin[index] == NULL)
+                    kmstate.sbinmap &= ~(SIZE_T_ONE << index);
+            } else {
+                //treebins
+            }
+
+            if(freeptr == kmstate.dVictim){
+                kmstate.dVictim = freeptr;
+                kmstate.dVictimSize = freesize;
+            }else{  //add consolidated chunk to sbin
+                if(freesize < MIN_LARGE_SIZE){
+                    index = small_index(freesize);
+                    kmalloc_dllist_add(freeptr, &kmstate.sbin[index]);
+                     kmstate.sbinmap |= (1 << index);
+                } else {
+                    //TODO tbins
+                }
+            }
         }
-
-        buff[(i % 16) + 1] = '\0';
+    } else {
+        freeptr->header = freesize | PREV_INUSE(freeptr);
+        next = CHUNKOFFSET(freeptr, freesize);
+        next->prev_foot = freesize;
+        next->header &= ~PINUSE;
+        if(freeptr == kmstate.dVictim){
+            kmstate.dVictim = freeptr;
+            kmstate.dVictimSize = freesize;
+        }else{  //add consolidated chunk to sbin
+            if(freesize < MIN_LARGE_SIZE){
+                index = small_index(freesize);
+                kmalloc_dllist_add(freeptr, &kmstate.sbin[index]);
+                    kmstate.sbinmap |= (1 << index);
+            } else {
+                //TODO tbins
+            }
+        }        
     }
-
-    // Pad out last line if not exactly 16 characters.
-    while ((i % 16) != 0) {
-        printf("   ");
-        i++;
-    }
-
-    // And print the final ASCII bit.
-    printf("  %s\n", buff);
 }
+
+
+static void* allocate_sbin(binmap_t index) {
+
+    kmchunk_ptr chunk = kmalloc_dllist_remove(&kmstate.sbin[index]);
+    if(kmstate.sbin[index] == NULL)
+        kmstate.sbinmap &= ~(SIZE_T_ONE << index);
+    if(chunk == NULL)
+        return NULL;
+
+    chunk->header |= CINUSE;
+    NEXTCHUNK(chunk)->header |= PINUSE;
+    return CHUNK_PAYLOAD(chunk);
+}
+
+static void* split_sbin(binmap_t index, size_t chunksize) {
+    
+    kmchunk_ptr chunk, new; 
+    size_t split_size;
+
+    chunk = kmalloc_dllist_remove(&kmstate.sbin[index]);
+
+    if(kmstate.sbin[index] == NULL)
+        kmstate.sbinmap &= ~(SIZE_T_ONE << index);
+    if(chunk == NULL)
+        return NULL;    
+    
+    split_size =  GETCHUNKSIZE(chunk) - chunksize;
+    chunk->header = chunksize | PINUSE | CINUSE;    //previous chunk cannot be a free chunk, so PINUSE is set
+  
+    new = CHUNKOFFSET(chunk, chunksize);
+    new->header = split_size | PINUSE;
+    NEXTCHUNK(new)->prev_foot = split_size;
+
+    replace_dv(new);
+
+    return CHUNK_PAYLOAD(chunk);;
+}
+
+static void* allocate_dv(size_t chunksize){
+    kmchunk_ptr chunk = NULL;
+    size_t split_size;
+
+    if(kmstate.dVictim == NULL || kmstate.dVictimSize < chunksize)
+        return NULL;
+
+    if(kmstate.dVictimSize - chunksize < MINCHUNKSIZE) { //exhaust dv
+        chunk = kmstate.dVictim;
+        chunk->header |= CINUSE;
+        NEXTCHUNK(chunk)->header |= PINUSE;
+        kmstate.dVictim = NULL;
+        kmstate.dVictimSize = 0;
+    }else{  //split dv
+        split_size = kmstate.dVictimSize - chunksize;
+        chunk = kmstate.dVictim;
+        chunk->header = chunksize | PINUSE | CINUSE;    //previous chunk cannot be a free chunk, so PINUSE is set
+        kmstate.dVictim = CHUNKOFFSET(chunk, chunksize);
+        kmstate.dVictim->header = split_size | PINUSE;
+        kmstate.dVictimSize = split_size;
+        NEXTCHUNK(kmstate.dVictim)->prev_foot = split_size;
+    }
+    return CHUNK_PAYLOAD(chunk);
+}
+
+static void replace_dv(kmchunk_ptr new){
+    size_t index;
+
+    if(kmstate.dVictim != NULL){
+        if(kmstate.dVictimSize < MIN_LARGE_SIZE){
+            index = small_index(kmstate.dVictimSize);
+            kmalloc_dllist_add(new, &kmstate.sbin[index]);
+            kmstate.sbinmap |= (1 << index);
+        } else {
+            //TODO tbins
+        }
+    }
+
+    kmstate.dVictim = new;
+    kmstate.dVictimSize = GETCHUNKSIZE(new);
+
+}
+
+
+
+static void* allocate_smallest_tbin(size_t chunksize) {
+    return NULL;
+}
+
+static void* split_top(size_t chunksize) {
+    kmchunk_ptr chunk = NULL;
+    size_t split_size;
+
+    if(kmstate.topChunk == NULL || kmstate.topChunkSize < chunksize)
+        return NULL;
+
+    if(kmstate.topChunkSize - chunksize < MINCHUNKSIZE) { //exhaust top
+        chunk = kmstate.topChunk;
+        chunk->header |= CINUSE;
+        kmstate.topChunk = NEXTCHUNK(chunk);
+        kmstate.topChunkSize = 0;
+    }else{  //split top
+        split_size = kmstate.topChunkSize - chunksize;
+        chunk = kmstate.topChunk;
+        chunk->header = chunksize | PINUSE | CINUSE;    //previous chunk cannot be a free chunk, so PINUSE is set
+        kmstate.topChunk = CHUNKOFFSET(chunk, chunksize);
+        kmstate.topChunk->header = split_size | PINUSE;
+        kmstate.topChunkSize = split_size;
+        NEXTCHUNK(kmstate.topChunk)->prev_foot = split_size;
+    }
+    return CHUNK_PAYLOAD(chunk);
+}
+

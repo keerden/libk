@@ -53,6 +53,8 @@ kmchunk_ptr kmalloc_dllist_remove(kmchunk_ptr *head);
  *                             equal to NULL when the end of heap is reached
  * */
 
+void kmalloc_chunk_iterate(kmchunk_ptr *chunk);
+
 /****
  *  kmchunk_ptr kmalloc_dllist_remove_intern(kmchunk_ptr chunk, kmchunk_ptr *head);
  * 
@@ -68,7 +70,6 @@ kmchunk_ptr kmalloc_dllist_remove(kmchunk_ptr *head);
 
 kmchunk_ptr kmalloc_dllist_remove_intern(kmchunk_ptr chunk, kmchunk_ptr *head);
 
-void kmalloc_chunk_iterate(kmchunk_ptr *chunk);
 
 /****
  *  void kmalloc_tree_insert(ktchunk_ptr chunk, ktchunk_ptr *root, int depth);

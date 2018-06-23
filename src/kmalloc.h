@@ -62,17 +62,23 @@ typedef unsigned int binmap_t;
 
 #define CHUNK_OVERHEAD        (SIZE_T_SIZE)
 #define CHUNK_ALIGN_ON        (8U)
-#define CHUNK_ALIGN_MASK      (CHUNK_ALIGN_ON - 1)
+#define CHUNK_ALIGN_MASK      (CHUNK_ALIGN_ON - SIZE_T_ONE)
 #define MINCHUNKSIZE          (16U)
 #define DUMMYSIZE             (CHUNK_ALIGN_ON)
 
-
+#define IS_INUSE(chunk)         ((chunk)->header & CINUSE)
+#define PREV_INUSE(chunk)       ((chunk)->header & PINUSE)
 #define GETCHUNKSIZE(c)         (((c)->header) & ~FLAGMASK)
 #define CHUNK_PAYLOAD(chunk)    ((void *) ((uint8_t *) chunk + offsetof(struct kmalloc_chunk, next)))
 #define PAYLOAD_CHUNK(ptr)      ((kmchunk_ptr) ((uint8_t *) ptr - offsetof(struct kmalloc_chunk, next)))
-#define CHUNKALIGN(x)           (((x) + CHUNK_ALIGN_ON - 1) & ~CHUNK_ALIGN_MASK)
+#define CHUNKALIGN(x)           ((kmchunk_ptr) ((uintptr_t) ((uintptr_t)(x) + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK))
+#define CHUNKSIZEALIGN(x)       (((x) + CHUNK_ALIGN_MASK) & ~CHUNK_ALIGN_MASK)
 #define CHUNKFLOOR(x)           ((x) & ~CHUNK_ALIGN_MASK)
-
+#define REQUEST2SIZE(req)       ((((req) + CHUNK_OVERHEAD) < MINCHUNKSIZE)? MINCHUNKSIZE : CHUNKSIZEALIGN((req) + CHUNK_OVERHEAD))
+#define REQUESTOVERFLOW(req)    (REQUEST2SIZE(req) < (req))
+#define NEXTCHUNK(ptr)          ((kmchunk_ptr) ((uint8_t*)ptr + GETCHUNKSIZE(ptr)))
+#define PREVCHUNK(ptr)          ((kmchunk_ptr) ((uint8_t*)ptr - (ptr)->prev_foot))
+#define CHUNKOFFSET(ptr, off)   ((kmchunk_ptr) ((uint8_t*)ptr + (off)))
 /******* Bin types, widths and sizes ********/
 #define NSBINS            (32U)
 #define NTBINS            (32U)
@@ -81,12 +87,13 @@ typedef unsigned int binmap_t;
 #define TBIN_SHIFT        (8U)
 #define MIN_LARGE_SIZE    (SIZE_T_ONE << TBIN_SHIFT)
 #define MAX_SMALL_SIZE    (MIN_LARGE_SIZE - SIZE_T_ONE)
-#define MAX_SMALL_REQUEST (MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD)
+//#define MAX_SMALL_REQUEST (MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD)
 
 /******* smallbins ************/
 #define small_index(s)      ((s) >> SBIN_SHIFT)
 #define small_index2size(i) ((i) << SBIN_SHIFT)
 #define MIN_SMALL_INDEX     (small_index(MINCHUNKSIZE))
+
 
 struct kmalloc_state {
     void *heap_start;
@@ -94,12 +101,19 @@ struct kmalloc_state {
     binmap_t    sbinmap;
     binmap_t    tbinmap;
     kmchunk_ptr sbin[NSBINS];
-    kmchunk_ptr tbin[NTBINS];
+    ktchunk_ptr tbin[NTBINS];
     kmchunk_ptr dVictim;
     size_t      dVictimSize;
     kmchunk_ptr topChunk;
     size_t      topChunkSize;
+    int         magic;
 };
+
+#define KMALLOC_STATE_MAGIC (0xC0FEFE)
+#define KMALLOC_IS_INIT(state) ((state).heap_start != NULL && (state).magic == KMALLOC_STATE_MAGIC)
+#define ADDR_AFTER_HEAPSTART(addr, state) ((addr) >= (state).heap_start)
+#define ADDR_BEFORE_HEAPEND(addr, state) ((addr) < (void *) ((uint8_t*)(state).heap_start + (state).heap_size))
+#define ADDRESS_OK(chunk, state) (ADDR_AFTER_HEAPSTART((void*) (chunk), (state)) && ADDR_BEFORE_HEAPEND((void*) (chunk), (state)))
 
 
 void kmalloc_init(void *heap_addr, size_t heap_size);
@@ -108,9 +122,12 @@ void kfree(void *ptr);
 
 struct kmalloc_state kmalloc_debug_getstate(void);
 
-#define chunksize_round(size) ((size < MINCHUNKSIZE)? MINCHUNKSIZE : CHUNKALIGN(size))
-#define calc_chunksize(size) chunksize_round(size + CHUNK_OVERHEAD)
+
 #define calc_bin_no(size) ((size < MINCHUNKSIZE)? 0 : ((size - MINCHUNKSIZE) / CHUNK_ALIGN_ON))
+
+
+
+
 
 
 #endif // !__KMALLOC

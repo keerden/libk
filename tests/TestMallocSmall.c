@@ -6,11 +6,11 @@
 
 #define HEAPSIZE 512
 
-uint8_t heap[HEAPSIZE];
+uint8_t heap[HEAPSIZE] __attribute__((aligned(8)));
 
 void setUp(void)
 {
-    memset(heap, 0, HEAPSIZE);
+    memset(heap, 0xAA, HEAPSIZE);
     kmalloc_init((void *)heap, HEAPSIZE);
 }
 
@@ -83,13 +83,6 @@ void test_MultipleSmallMalloc(void)
     TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 5, state, heap, HEAPSIZE));
 
-    kfree(mem1);
-    kfree(mem2);
-    kfree(mem3);
-    kfree(mem4);
-
-    //state should be the same as initial state
-    test_InitialHeap();
 }
 
 void test_MallocOverLimit(void)  //allocate more than heapsize, but less than max mem

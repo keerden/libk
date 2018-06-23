@@ -81,7 +81,7 @@ int check_heap_layout   (  test_chunkinfo *expected,
         test = expected[index]; 
         size = GETCHUNKSIZE(chunk);
         if(test.size != size) REPORT("Chunksize mismatch", chunk, heap);
-        if((size_t)chunk + size > (size_t) heapsize) REPORT("Chunk overflows heap", chunk, heap);
+        if(((size_t) chunk + size) > ((size_t) heap + heapsize)) REPORT("Chunk overflows heap", chunk, heap);
 
         if(test.type == USED) {
             if(!(chunk->header & CINUSE)) REPORT("Chunk should be in use", chunk, heap);
@@ -173,3 +173,4 @@ void debugDump(char *desc, void *addr, int len)
     // And print the final ASCII bit.
     printf("  %s\n", buff);
 }
+

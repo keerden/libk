@@ -186,10 +186,11 @@ void test_SmallFreeUnusedUnused(void)
     kfree(mem3);
     kfree(mem2);
 
+
     state = kmalloc_debug_getstate();
     test_chunkinfo expected[3] =   {{FREE, 3 * (32 + 8), NULL},
                                     {USED, 32 + 8, mem4},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
+                                    {TC, HEAPSIZE - DUMMYSIZE - 160, NULL}};
 
     TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 3, state, heap, HEAPSIZE));
