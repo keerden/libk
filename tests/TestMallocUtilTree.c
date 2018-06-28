@@ -425,10 +425,6 @@ void test_TreeBestFitExact(void){
 
         expected result= 3:0x108
 
-                                0:0x120
-                  1:0x100                    2:0x1F8  
-           5:0x118        4:0x140
-            () 6:0x130 
     */
 
     ktchunk chunk[7];
@@ -444,17 +440,9 @@ void test_TreeBestFitExact(void){
 
     for(int i = 0; i < 7; i++)
         kmalloc_tree_insert(&(chunk[i]), &root, 8);
-    result = kmalloc_tree_get_best_fit(0x108, &root, 8);
+    result = kmalloc_tree_get_best_fit(0x108, root, 8);
 
     TEST_ASSERT_EQUAL_PTR(&chunk[3], result);
-    TEST_ASSERT_EQUAL_PTR(&chunk[0], root);
-
-    testTreeChunk(chunk[0], NULL, &chunk[1], &chunk[2], &chunk[0], &chunk[0]);
-    testTreeChunk(chunk[1], &chunk[0], &chunk[5], &chunk[4], &chunk[1], &chunk[1]);
-    testTreeChunk(chunk[2], &chunk[0], NULL, NULL, &chunk[2], &chunk[2]);
-    testTreeChunk(chunk[4], &chunk[1], NULL, NULL, &chunk[4], &chunk[4]);
-    testTreeChunk(chunk[5], &chunk[1], NULL, &chunk[6], &chunk[5], &chunk[5]);
-    testTreeChunk(chunk[6], &chunk[5], NULL, NULL, &chunk[6], &chunk[6]);
 }
 
 void test_TreeBestFitExactList(void){
@@ -465,10 +453,6 @@ void test_TreeBestFitExactList(void){
       5:0x118    6:0x130  
 
         expected result= 3:0x108
-                                0:0x120
-                  1:0x100                    2:0x1F8  
-           7-8:0x108          4:0x140
-      5:0x118    6:0x130
     */
 
     ktchunk chunk[9];
@@ -485,19 +469,10 @@ void test_TreeBestFitExactList(void){
 
     for(int i = 0; i < 9; i++)
         kmalloc_tree_insert(&(chunk[i]), &root, 8);
-    result = kmalloc_tree_get_best_fit(0x108, &root, 8);
+    result = kmalloc_tree_get_best_fit(0x108, root, 8);
 
     TEST_ASSERT_EQUAL_PTR(&chunk[3], result);
-    TEST_ASSERT_EQUAL_PTR(&chunk[0], root);
 
-    testTreeChunk(chunk[0], NULL, &chunk[1], &chunk[2], &chunk[0], &chunk[0]);
-    testTreeChunk(chunk[1], &chunk[0], &chunk[7], &chunk[4], &chunk[1], &chunk[1]);
-    testTreeChunk(chunk[2], &chunk[0], NULL, NULL, &chunk[2], &chunk[2]);
-    testTreeChunk(chunk[4], &chunk[1], NULL, NULL, &chunk[4], &chunk[4]);
-    testTreeChunk(chunk[5], &chunk[7], NULL, NULL, &chunk[5], &chunk[5]);
-    testTreeChunk(chunk[6], &chunk[7], NULL, NULL, &chunk[6], &chunk[6]);
-    testTreeChunk(chunk[7], &chunk[1], &chunk[5], &chunk[6], &chunk[8], &chunk[8]);
-    testTreeChunk(chunk[8], NULL, NULL, NULL, &chunk[7], &chunk[7]);
     
 }
 
@@ -510,11 +485,6 @@ void test_TreeBestFitLargerSamePath(void){
                                    5:0x190  6:0x1B8   
 
         expected result for 0x1AB= 3:0x1B0 
-
-                                0:0x120
-                  1:0x100                    2:0x180  
-                                       5:0x190       4:0x1D8
-                                           6:0x1B8  
     */
 
     ktchunk chunk[7];
@@ -530,17 +500,10 @@ void test_TreeBestFitLargerSamePath(void){
 
     for(int i = 0; i < 7; i++)
         kmalloc_tree_insert(&(chunk[i]), &root, 8);
-    result = kmalloc_tree_get_best_fit(0x1AB, &root, 8);
+    result = kmalloc_tree_get_best_fit(0x1AB, root, 8);
 
     TEST_ASSERT_EQUAL_PTR(&chunk[3], result);
-    TEST_ASSERT_EQUAL_PTR(&chunk[0], root);
 
-    testTreeChunk(chunk[0], NULL, &chunk[1], &chunk[2], &chunk[0], &chunk[0]);
-    testTreeChunk(chunk[1], &chunk[0], NULL, NULL, &chunk[1], &chunk[1]);
-    testTreeChunk(chunk[2], &chunk[0], &chunk[5], &chunk[4], &chunk[2], &chunk[2]);
-    testTreeChunk(chunk[4], &chunk[2], NULL, NULL, &chunk[4], &chunk[4]);
-    testTreeChunk(chunk[5], &chunk[2], NULL, &chunk[6], &chunk[5], &chunk[5]);
-    testTreeChunk(chunk[6], &chunk[5], NULL, NULL, &chunk[6], &chunk[6]);
 }
 
 void test_TreeBestFitLargerOtherPath(void){
@@ -553,12 +516,6 @@ void test_TreeBestFitLargerOtherPath(void){
                                                      8:0x1D0
 
         expected result for 0x198= 6:0x1C8 
-
-                                0:0x120
-                  1:0x100                    2:0x180  
-                                       3:0x188       4:0x1F0
-                                   5:0x190        8:0x1D0
-                                                        7:0x1D8
                                                       
     */
 
@@ -577,19 +534,9 @@ void test_TreeBestFitLargerOtherPath(void){
 
     for(int i = 0; i < 9; i++)
         kmalloc_tree_insert(&(chunk[i]), &root, 8);
-    result = kmalloc_tree_get_best_fit(0x1AB, &root, 8);
+    result = kmalloc_tree_get_best_fit(0x1AB, root, 8);
 
     TEST_ASSERT_EQUAL_PTR(&chunk[6], result);
-    TEST_ASSERT_EQUAL_PTR(&chunk[0], root);
-
-    testTreeChunk(chunk[0], NULL, &chunk[1], &chunk[2], &chunk[0], &chunk[0]);
-    testTreeChunk(chunk[1], &chunk[0], NULL, NULL, &chunk[1], &chunk[1]);
-    testTreeChunk(chunk[2], &chunk[0], &chunk[3], &chunk[4], &chunk[2], &chunk[2]);
-    testTreeChunk(chunk[3], &chunk[2], &chunk[5], NULL, &chunk[3], &chunk[3]);
-    testTreeChunk(chunk[4], &chunk[2], &chunk[8], NULL, &chunk[4], &chunk[4]);
-    testTreeChunk(chunk[5], &chunk[3], NULL, NULL, &chunk[5], &chunk[5]);
-    testTreeChunk(chunk[7], &chunk[8], NULL, NULL, &chunk[7], &chunk[7]);
-    testTreeChunk(chunk[8], &chunk[4], NULL, &chunk[7], &chunk[8], &chunk[8]);
 }
 
 void test_TreeBestFitNone(void){
@@ -616,18 +563,9 @@ void test_TreeBestFitNone(void){
 
     for(int i = 0; i < 7; i++)
         kmalloc_tree_insert(&(chunk[i]), &root, 8);
-    result = kmalloc_tree_get_best_fit(0x1F8, &root, 8);
+    result = kmalloc_tree_get_best_fit(0x1F8, root, 8);
 
     TEST_ASSERT_EQUAL_PTR(NULL, result);
-    TEST_ASSERT_EQUAL_PTR(&chunk[0], root);
-
-    testTreeChunk(chunk[0], NULL, &chunk[1], &chunk[2], &chunk[0], &chunk[0]);
-    testTreeChunk(chunk[1], &chunk[0], NULL, NULL, &chunk[1], &chunk[1]);
-    testTreeChunk(chunk[2], &chunk[0], &chunk[3], &chunk[4], &chunk[2], &chunk[2]);
-    testTreeChunk(chunk[3], &chunk[2], &chunk[5], &chunk[6], &chunk[3], &chunk[3]);
-    testTreeChunk(chunk[4], &chunk[2], NULL, NULL, &chunk[4], &chunk[4]);
-    testTreeChunk(chunk[5], &chunk[3], NULL, NULL, &chunk[5], &chunk[5]);
-    testTreeChunk(chunk[6], &chunk[3], NULL, NULL, &chunk[6], &chunk[6]);
 }
 
 void test_TreeSmallestList(void){
@@ -638,13 +576,7 @@ void test_TreeSmallestList(void){
       5:0x118    6:0x130  
 
         expected result  1:0x100
-                                0:0x120
-                7-8:(0x100)                    2:0x1F8  
-           3:0x108          4:0x140
-      5:0x118    6:0x130    
-
-
-    */
+     */
 
     ktchunk chunk[9];
     ktchunk_ptr result, root = NULL;
@@ -660,18 +592,9 @@ void test_TreeSmallestList(void){
 
     for(int i = 0; i < 9; i++)
         kmalloc_tree_insert(&(chunk[i]), &root, 8);
-    result = kmalloc_tree_get_smallest(&root);
+    result = kmalloc_tree_get_smallest(root);
 
     TEST_ASSERT_EQUAL_PTR(&chunk[1], result);
-    TEST_ASSERT_EQUAL_PTR(&chunk[0], root);
-    testTreeChunk(chunk[0], NULL, &chunk[7], &chunk[2], &chunk[0], &chunk[0]);
-    testTreeChunk(chunk[2], &chunk[0], NULL, NULL, &chunk[2], &chunk[2]);
-    testTreeChunk(chunk[3], &chunk[7], &chunk[5], &chunk[6], &chunk[3], &chunk[3]);
-    testTreeChunk(chunk[4], &chunk[7], NULL, NULL, &chunk[4], &chunk[4]);
-    testTreeChunk(chunk[5], &chunk[3],NULL, NULL, &chunk[5], &chunk[5]);
-    testTreeChunk(chunk[6], &chunk[3], NULL, NULL, &chunk[6], &chunk[6]);
-    testTreeChunk(chunk[7],  &chunk[0], &chunk[3], &chunk[4], &chunk[8], &chunk[8]);
-    testTreeChunk(chunk[8],  NULL, NULL, NULL, &chunk[7], &chunk[7]);
 }
 
 void test_TreeSmallest (void) {
@@ -682,11 +605,6 @@ void test_TreeSmallest (void) {
       5:0x118    6:0x130  
 
         expected result= 1:0x100 
-                                0:0x120
-                  5:(0x118)                    2:0x1F8  
-           3:0x108          4:0x140
-        ()   6:0x130 
-
 
     */
 
@@ -702,15 +620,8 @@ void test_TreeSmallest (void) {
 
     for(int i = 0; i < 7; i++)
         kmalloc_tree_insert(&(chunk[i]), &root, 8);
-    result = kmalloc_tree_get_smallest(&root);
+    result = kmalloc_tree_get_smallest(root);
 
     TEST_ASSERT_EQUAL_PTR(&chunk[1], result);
 
-    TEST_ASSERT_EQUAL_PTR(&chunk[0], root);
-    testTreeChunk(chunk[0], NULL, &chunk[5], &chunk[2], &chunk[0], &chunk[0]);
-    testTreeChunk(chunk[2], &chunk[0], NULL, NULL, &chunk[2], &chunk[2]);
-    testTreeChunk(chunk[3], &chunk[5], NULL, &chunk[6], &chunk[3], &chunk[3]);
-    testTreeChunk(chunk[4], &chunk[5], NULL, NULL, &chunk[4], &chunk[4]);
-    testTreeChunk(chunk[5], &chunk[0], &chunk[3], &chunk[4], &chunk[5], &chunk[5]);
-    testTreeChunk(chunk[6], &chunk[3], NULL, NULL, &chunk[6], &chunk[6]);
 }

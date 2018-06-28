@@ -24,8 +24,9 @@ void test_InitialHeap(void)
 
     test_chunkinfo expected[1] = {
         {TC, HEAPSIZE - DUMMYSIZE, NULL}};
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 1, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SingleMalloc(void)
@@ -34,6 +35,7 @@ void test_SingleMalloc(void)
     void *mem;
 
     mem = kmalloc(32 + 4);
+    memset(mem, '1', 32+4);
 
     state = kmalloc_debug_getstate();
 
@@ -41,8 +43,9 @@ void test_SingleMalloc(void)
         {USED, 32 + 8, mem},
         {TC, HEAPSIZE -DUMMYSIZE - (32 + 8), NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 2, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_MallocNullSize(void)
@@ -57,10 +60,11 @@ void test_MallocNullSize(void)
         {USED, 8 + 8, mem},
         {TC, HEAPSIZE - DUMMYSIZE - (8 + 8), NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 2, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
-
+ 
 void test_MultipleSmallMalloc(void)
 {
     void *mem1, *mem2, *mem3, *mem4;
@@ -69,8 +73,8 @@ void test_MultipleSmallMalloc(void)
     mem1 = kmalloc(16);
     mem2 = kmalloc(32);
     mem3 = kmalloc(64);
-    mem4 = kmalloc(8);
-
+    mem4 = kmalloc(8 + 4);
+    memset(mem4, '4',8 + 4);
 
     state = kmalloc_debug_getstate();
     test_chunkinfo expected[5] =    {
@@ -80,8 +84,9 @@ void test_MultipleSmallMalloc(void)
                                     {USED, 8 + 8, mem4},
                                     {TC, HEAPSIZE - DUMMYSIZE - 4 * 8 - 120, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 5, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 
 }
 
@@ -115,8 +120,9 @@ void test_MallocSmallFromSBin(void)
                                     {USED, 32 + 8, mem2},
                                     {TC, HEAPSIZE - DUMMYSIZE - 112, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 3, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_MallocSmallFromNextBin(void)
@@ -134,8 +140,9 @@ void test_MallocSmallFromNextBin(void)
                                     {USED, 32 + 8, mem2},
                                     {TC, HEAPSIZE - DUMMYSIZE - 112, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 3, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 void test_MallocSmallFromLargerBin(void)
 {
@@ -152,8 +159,9 @@ void test_MallocSmallFromLargerBin(void)
                                     {DV, 32, NULL},
                                     {USED, 32 + 8, mem2},
                                     {TC, HEAPSIZE - DUMMYSIZE - 112, NULL}};;
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 4, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_MallocSmallFromDvSplit(void)
@@ -173,8 +181,9 @@ void test_MallocSmallFromDvSplit(void)
                                     {DV, 16, NULL},
                                     {USED, 32 + 8, mem2},
                                     {TC, HEAPSIZE - DUMMYSIZE - 112, NULL}};
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 5, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_MallocSmallFromDvExhaustFit(void)
@@ -193,8 +202,9 @@ void test_MallocSmallFromDvExhaustFit(void)
                                     {USED, 24 + 8, mem4},
                                     {USED, 32 + 8, mem2},
                                     {TC, HEAPSIZE - DUMMYSIZE - 112, NULL}};
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 4, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 void test_MallocSmallFromDvExhaustRemainder(void)
 {
@@ -212,28 +222,34 @@ void test_MallocSmallFromDvExhaustRemainder(void)
                                     {USED, 16 + 8 + 8, mem4},
                                     {USED, 32 + 8, mem2},
                                     {TC, HEAPSIZE - DUMMYSIZE - 112, NULL}};
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 4, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_MallocSmallFromTBin(void)
 {
-    void *mem1, *mem2, *mem3;
+    void *mem1, *mem2, *mem3, *mem4;
     struct kmalloc_state state;
 
-    mem1 = kmalloc(256 - 8);
-    mem2 = kmalloc(32);
+    mem1 = kmalloc(128 - 8);
+    mem2 = kmalloc(128 - 8);
+    mem3 = kmalloc(32);
     kfree(mem1);
-    mem3 = kmalloc(64);
+    kfree(mem2);
+    mem4 = kmalloc(64);
+
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[4] =   {{USED, 64 + 8, mem3},
-                                    {DV, 256 - 64 - 8, NULL},
-                                    {USED, 32 + 8, mem2},
+  
+    test_chunkinfo expected[4] =   {{USED, 64 + 8, mem4},
+                                    {DV, 256 - (64 + 8), NULL},
+                                    {USED, 32 + 8, mem3},
                                     {TC, HEAPSIZE - DUMMYSIZE - 296, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 4, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 

@@ -8,19 +8,15 @@
 
 uint8_t heap[HEAPSIZE];
 
-
 void setUp(void)
 {
-   memset(heap, 0, HEAPSIZE);
-   kmalloc_init((void *) heap, HEAPSIZE);
+    memset(heap, 0, HEAPSIZE);
+    kmalloc_init((void *)heap, HEAPSIZE);
 }
 
 void tearDown(void)
 {
 }
-
-
-
 
 void test_SmallFreeSingle(void)
 {
@@ -33,8 +29,9 @@ void test_SmallFreeSingle(void)
     state = kmalloc_debug_getstate();
     test_chunkinfo expected[1] = {
         {TC, HEAPSIZE - DUMMYSIZE, NULL}};
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 1, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeSanity(void)
@@ -49,7 +46,7 @@ void test_FreeCorruptionCheck(void)
 
 void test_SmallFreeBetweenUsedChunks(void)
 {
-     void *mem1, *mem2, *mem3;
+    void *mem1, *mem2, *mem3;
     struct kmalloc_state state;
 
     mem1 = kmalloc(32);
@@ -59,13 +56,14 @@ void test_SmallFreeBetweenUsedChunks(void)
     kfree(mem2);
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[4] =   {{USED, 32 + 8, mem1},
-                                    {FREE, 32 + 8, NULL},
-                                    {USED, 64 + 8, mem3},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
+    test_chunkinfo expected[4] = {{USED, 32 + 8, mem1},
+                                  {FREE, 32 + 8, NULL},
+                                  {USED, 64 + 8, mem3},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 4, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeUnusedBefore(void)
@@ -81,12 +79,13 @@ void test_SmallFreeUnusedBefore(void)
     kfree(mem2);
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[3] =   {{FREE, 2 * (32 + 8), NULL},
-                                    {USED, 64 + 8, mem3},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
+    test_chunkinfo expected[3] = {{FREE, 2 * (32 + 8), NULL},
+                                  {USED, 64 + 8, mem3},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 3, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeDvBefore(void)
@@ -102,18 +101,19 @@ void test_SmallFreeDvBefore(void)
     kfree(mem2);
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[4] =   {{USED, 16 + 8, mem1},
-                                    {DV, 16 + 32 + 8, NULL},
-                                    {USED, 64 + 8, mem3},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
+    test_chunkinfo expected[4] = {{USED, 16 + 8, mem1},
+                                  {DV, 16 + 32 + 8, NULL},
+                                  {USED, 64 + 8, mem3},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 4, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeUnusedAfter(void)
 {
- void *mem1, *mem2, *mem3;
+    void *mem1, *mem2, *mem3;
     struct kmalloc_state state;
 
     mem1 = kmalloc(32);
@@ -124,12 +124,13 @@ void test_SmallFreeUnusedAfter(void)
     kfree(mem1);
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[3] =   {{FREE, 2 * (32 + 8), NULL},
-                                    {USED, 64 + 8, mem3},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
+    test_chunkinfo expected[3] = {{FREE, 2 * (32 + 8), NULL},
+                                  {USED, 64 + 8, mem3},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 3, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeDvAfter(void)
@@ -145,13 +146,14 @@ void test_SmallFreeDvAfter(void)
     kfree(mem2);
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[4] =   {{USED, 32 + 8, mem1},
-                                    {DV, 32 + 8, NULL},
-                                    {USED, 64 + 8, mem3},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
+    test_chunkinfo expected[4] = {{USED, 32 + 8, mem1},
+                                  {DV, 32 + 8, NULL},
+                                  {USED, 64 + 8, mem3},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 4, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeTcAfter(void)
@@ -165,11 +167,12 @@ void test_SmallFreeTcAfter(void)
     kfree(mem2);
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[2] =   {{USED, 32 + 8, mem1},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 40, NULL}};
+    test_chunkinfo expected[2] = {{USED, 32 + 8, mem1},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 40, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 2, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeUnusedUnused(void)
@@ -186,14 +189,14 @@ void test_SmallFreeUnusedUnused(void)
     kfree(mem3);
     kfree(mem2);
 
-
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[3] =   {{FREE, 3 * (32 + 8), NULL},
-                                    {USED, 32 + 8, mem4},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 160, NULL}};
+    test_chunkinfo expected[3] = {{FREE, 3 * (32 + 8), NULL},
+                                  {USED, 32 + 8, mem4},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 160, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 3, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeUnusedDv(void)
@@ -212,14 +215,13 @@ void test_SmallFreeUnusedDv(void)
     kfree(mem2);
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[3] =   {{DV, 2 * (32 + 8), NULL},
-                                    {USED, 64 + 8, mem3},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
+    test_chunkinfo expected[3] = {{DV, 2 * (32 + 8), NULL},
+                                  {USED, 64 + 8, mem3},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 152, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 3, state, heap, HEAPSIZE));
-
-
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeUnusedTc(void)
@@ -235,11 +237,12 @@ void test_SmallFreeUnusedTc(void)
     kfree(mem3);
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[2] =   {{USED, 32 + 8, mem1},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 40, NULL}};
+    test_chunkinfo expected[2] = {{USED, 32 + 8, mem1},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 40, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 2, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeDvUnused(void)
@@ -258,13 +261,14 @@ void test_SmallFreeDvUnused(void)
     kfree(mem2);
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[4] =   {{USED, 16 + 8, mem1},
-                                    {DV, 16 +  (32 + 8) + (64 + 8), NULL},
-                                    {USED, 16 + 8, mem4},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 176, NULL}};
+    test_chunkinfo expected[4] = {{USED, 16 + 8, mem1},
+                                  {DV, 16 + (32 + 8) + (64 + 8), NULL},
+                                  {USED, 16 + 8, mem4},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 176, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 3, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
 void test_SmallFreeDvTc(void)
@@ -279,13 +283,11 @@ void test_SmallFreeDvTc(void)
     kfree(mem2);
 
     state = kmalloc_debug_getstate();
-    test_chunkinfo expected[2] =   {{USED, 16 + 8, mem1},
-                                    {TC, HEAPSIZE - DUMMYSIZE - 24, NULL}};
+    test_chunkinfo expected[2] = {{USED, 16 + 8, mem1},
+                                  {TC, HEAPSIZE - DUMMYSIZE - 24, NULL}};
 
-    TEST_ASSERT_FALSE(check_heap_integrety(heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_heap_integrity(heap, HEAPSIZE));
     TEST_ASSERT_FALSE(check_heap_layout(expected, 2, state, heap, HEAPSIZE));
+    TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state)); 
 }
-
-
-
 

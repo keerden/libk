@@ -55,8 +55,9 @@ test: default
 	@ X=0;							\
 	 for test in $(TEST_TARGETS); 	\
 	 do 							\
-		if $$test; \
-			then X=1; \
+	 	$$test;						\
+		if [ $$? -ne 0 ];			\
+			then X=1; 				\
 		fi;							\
 	done; 							\
 	exit $$X						

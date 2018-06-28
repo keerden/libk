@@ -7,7 +7,7 @@
 
 
   
-
+typedef unsigned int binmap_t;
 
 /***
  * Chunk definition
@@ -21,7 +21,6 @@ struct kmalloc_chunk {
 };
 
 
-
 struct kmalloc_tree_chunk {
     size_t prev_foot;
     size_t header;
@@ -31,6 +30,7 @@ struct kmalloc_tree_chunk {
     struct kmalloc_tree_chunk*   left;
     struct kmalloc_tree_chunk*   right;
     struct kmalloc_tree_chunk*   parent;
+    binmap_t                     index;
 };
 
 typedef struct kmalloc_chunk kmchunk;
@@ -38,7 +38,7 @@ typedef struct kmalloc_chunk* kmchunk_ptr;
 typedef struct kmalloc_tree_chunk ktchunk;
 typedef struct kmalloc_tree_chunk* ktchunk_ptr;
 
-typedef unsigned int binmap_t;
+
 
 
 /******* size_t constants ********/
@@ -87,12 +87,14 @@ typedef unsigned int binmap_t;
 #define TBIN_SHIFT        (8U)
 #define MIN_LARGE_SIZE    (SIZE_T_ONE << TBIN_SHIFT)
 #define MAX_SMALL_SIZE    (MIN_LARGE_SIZE - SIZE_T_ONE)
-//#define MAX_SMALL_REQUEST (MAX_SMALL_SIZE - CHUNK_ALIGN_MASK - CHUNK_OVERHEAD)
 
-/******* smallbins ************/
+/******* bin operations ************/
 #define small_index(s)      ((s) >> SBIN_SHIFT)
 #define small_index2size(i) ((i) << SBIN_SHIFT)
+
 #define MIN_SMALL_INDEX     (small_index(MINCHUNKSIZE))
+#define SMALLEST_BINDEX(bin) ((binmap_t) __builtin_ctz(bin))
+#define TBIN_DEPTH(index)   (((index) >> 1) + TBIN_SHIFT - 1)
 
 
 struct kmalloc_state {
