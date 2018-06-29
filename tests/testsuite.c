@@ -60,7 +60,7 @@ int check_heap_integrity(void *heap, size_t heapsize)
         chunk = (kmchunk_ptr)((size_t)chunk + size);
     }
 
-    if (prev_inuse && (chunk->prev_foot != prev_size))
+    if (!prev_inuse && (chunk->prev_foot != prev_size))
         REPORT("prev_foot of dummy chunk doesn't match size of previous chunk", chunk, heap);
     if (((size_t)chunk + 8) > ((size_t)heap + heapsize))
         REPORT("dummy chunk overflows heap", chunk, heap);

@@ -117,13 +117,26 @@ struct kmalloc_state {
 #define ADDR_BEFORE_HEAPEND(addr, state) ((addr) < (void *) ((uint8_t*)(state).heap_start + (state).heap_size))
 #define ADDRESS_OK(chunk, state) (ADDR_AFTER_HEAPSTART((void*) (chunk), (state)) && ADDR_BEFORE_HEAPEND((void*) (chunk), (state)))
 
+#define HEAP_SHRINK_TRESHOLD (4096U)
+#define HEAP_SHRINK_MIN      (4096U)
+
+
+void* __KMALlOC_SBRK_CALLBACK(intptr_t increment);
+void  __KMALlOC_SET_SBRK_CALLBACK(void* (*callback) (intptr_t));
+
+void __KMALlOC_ABORT_CALLBACK(void);
+void  __KMALlOC_SET_ABORT_CALLBACK(void (*callback) (void));
+
+#define ACTION_SBRK(increment)  __KMALlOC_SBRK_CALLBACK(increment)
+#define ACTION_ABORT()            __KMALlOC_ABORT_CALLBACK()           
+
+
 
 void kmalloc_init(void *heap_addr, size_t heap_size);
 void* kmalloc (size_t size);
 void kfree(void *ptr);
 
 struct kmalloc_state kmalloc_debug_getstate(void);
-
 
 #define calc_bin_no(size) ((size < MINCHUNKSIZE)? 0 : ((size - MINCHUNKSIZE) / CHUNK_ALIGN_ON))
 

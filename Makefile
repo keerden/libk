@@ -17,6 +17,7 @@ all: clean lib test
 
 lib:
 	@$(MAKE) all -C $(SRC_DIR)
+	
 
 test:
 	@$(MAKE) test -C $(TEST_DIR)

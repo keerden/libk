@@ -90,21 +90,6 @@ void test_MultipleSmallMalloc(void)
 
 }
 
-void test_MallocOverLimit(void)  //allocate more than heapsize, but less than max mem
-{
-    TEST_IGNORE();
-}
-
-void test_MallocMaxSize(void)   //allocate all space within the heap
-{
-    TEST_IGNORE();
-}
-
-void test_MallocOutOfMem(void)  //allocate more than heapsize and more than max mem
-{
-    TEST_IGNORE();
-}
-
 void test_MallocSmallFromSBin(void)
 {
     void *mem1, *mem2, *mem3;

@@ -34,15 +34,6 @@ void test_SmallFreeSingle(void)
     TEST_ASSERT_FALSE(check_bins(heap,  HEAPSIZE, state));
 }
 
-void test_SmallFreeSanity(void)
-{
-    TEST_IGNORE();
-}
-
-void test_FreeCorruptionCheck(void)
-{
-    TEST_IGNORE();
-}
 
 void test_SmallFreeBetweenUsedChunks(void)
 {
