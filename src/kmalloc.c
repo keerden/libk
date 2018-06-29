@@ -213,7 +213,7 @@ void kfree(void *ptr)
 
     size_t freesize, csize;
 
-    if(ptr == NULL)
+    if(ptr == NULL || !KMALLOC_IS_INIT(kmstate))
         return;
 
     if (!ADDRESS_OK(chunk, kmstate) || !IS_INUSE(chunk))
@@ -305,6 +305,26 @@ void kfree(void *ptr)
         }
     }
 }
+
+void *realloc( void *ptr, size_t new_size ) {
+    /*
+        not implemented yet.
+
+        Basic outline will be:
+            -   if ptr = NULL malloc
+            -   if new_size = 0 free
+            -   if newsize is equal, return ptr
+            -   else if newsize is smaller, 
+                    split chunk and free it.
+            -   else, the size is larger
+            -       if next chunk is free and large enough, expand
+            -       else malloc, copy free? 
+            -
+    */
+    return NULL;
+}
+	
+
 
 static void *allocate_sbin(binmap_t index)
 {
