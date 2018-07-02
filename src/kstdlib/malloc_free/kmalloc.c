@@ -414,7 +414,7 @@ static void bin_chunk(kmchunk_ptr chunk)
     {
         index = small_index(size);
         kmalloc_dllist_add(chunk, &kmstate.sbin[index]);
-        kmstate.sbinmap |= (1 << index);
+        kmstate.sbinmap |= (1U << index);
     }
     else
     {
@@ -422,7 +422,7 @@ static void bin_chunk(kmchunk_ptr chunk)
         tchunk = (ktchunk_ptr)chunk;
         tchunk->index = index;
         kmalloc_tree_insert(tchunk, &kmstate.tbin[index], TBIN_DEPTH(index));
-        kmstate.tbinmap |= (1 << index);
+        kmstate.tbinmap |= (1U << index);
     }
 }
 
@@ -455,7 +455,7 @@ static void *allocate_tchunk(ktchunk_ptr chunk, size_t wanted_size)
 
     kmalloc_tree_remove(chunk, &kmstate.tbin[chunk->index]);
     if (!kmstate.tbin[chunk->index])
-        kmstate.tbinmap &= ~(1 << chunk->index);
+        kmstate.tbinmap &= ~(1U << chunk->index);
 
     if (GETCHUNKSIZE(chunk) - wanted_size > MINCHUNKSIZE)
     {
@@ -527,15 +527,15 @@ static inline binmap_t calc_tbin(size_t size)
     if (size > (0xFFFF << TBIN_SHIFT))
         return 31;
 
-    binmap_t msb = 31 - __builtin_clz(size);
+    binmap_t msb = 31U - (binmap_t) __builtin_clz(size);
     //msb * 2, add 1 if size lays in higher half of the decade
     return ((msb - TBIN_SHIFT) << 1) | ((size >> (msb - 1)) & 1);
 }
 
 static inline binmap_t calc_leftbin(binmap_t index, binmap_t map)
 {
-    binmap_t mask = -(1 << index); //maskout all right bits
-    return __builtin_ctz(map & mask);
+    binmap_t mask = -(1U << index); //maskout all right bits
+    return (binmap_t) __builtin_ctz(map & mask);
 }
 
 static void shrink_top(void)
@@ -552,7 +552,7 @@ static void shrink_top(void)
         if(amount > HALF_MAX_SIZE_T)        //prevent signed overflow
             amount = HALF_MAX_SIZE_T;
 
-        if(ACTION_SBRK(-amount) != (void *) -1){
+        if(ACTION_SBRK((int) -amount) != (void *) -1){
             //heap has decreased. change top
             kmstate.heap_size -= amount;
             kmstate.topChunkSize -= amount;
@@ -571,7 +571,7 @@ static int grow_top(size_t increment) {
      if(increment > HALF_MAX_SIZE_T)        //prevent signed overflow
         return -1;
 
-    if(ACTION_SBRK(increment) != (void *) -1) {
+    if(ACTION_SBRK((intptr_t) increment) != (void *) -1) {
         kmstate.heap_size+= increment;
         return 0;
     }

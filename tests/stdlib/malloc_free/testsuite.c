@@ -1,6 +1,6 @@
 #include "testsuite.h"
-#include "kmalloc.h"
-#include "kmalloc_util.h"
+#include "kstdlib/malloc_free/kmalloc.h"
+#include "kstdlib/malloc_free/kmalloc_util.h"
 #include <stdio.h>
 
 #define REPORT(str, addr, heap)                                                                       \
@@ -84,7 +84,7 @@ int check_bins(void *heap, size_t heapsize, struct kmalloc_state state)
     ktchunk_ptr tchunk;
     for (binmap_t i = 0; i < NSBINS; i++)
     {
-        if (state.sbinmap & (1 << i))
+        if (state.sbinmap & (1U << i))
         {
             if (state.sbin[i] == NULL)
                 REPORT("sbinmask set, but no chunk stored", i, 0);
@@ -108,7 +108,7 @@ int check_bins(void *heap, size_t heapsize, struct kmalloc_state state)
     }
     for (binmap_t i = 0; i < NTBINS; i++)
     {
-        if (state.tbinmap & (1 << i))
+        if (state.tbinmap & (1U << i))
         {
             if (state.tbin[i] == NULL)
                 REPORT("tbinmask set, but no chunk stored", i, 0);

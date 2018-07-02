@@ -1,6 +1,6 @@
 #ifndef __testsuite_h
 #define __testsuite_h
-#include "kmalloc.h"
+#include "kstdlib/malloc_free/kmalloc.h"
 
 
 

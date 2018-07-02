@@ -94,7 +94,7 @@ typedef struct kmalloc_tree_chunk* ktchunk_ptr;
 
 #define MIN_SMALL_INDEX     (small_index(MINCHUNKSIZE))
 #define SMALLEST_BINDEX(bin) ((binmap_t) __builtin_ctz(bin))
-#define TBIN_DEPTH(index)   (((index) >> 1) + TBIN_SHIFT - 1)
+#define TBIN_DEPTH(index)   (int) (((index) >> 1) + TBIN_SHIFT - 1)
 
 
 struct kmalloc_state {

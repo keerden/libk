@@ -1,2 +1,0 @@
-rm kmalloc
-gcc kmalloc.c -o kmalloc -m32

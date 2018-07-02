@@ -1,6 +1,6 @@
 #include "unity.h"
-#include "kmalloc.h"
-#include "kmalloc_util.h" 
+#include "kstdlib/malloc_free/kmalloc.h"
+#include "kstdlib/malloc_free/kmalloc_util.h" 
 
 
 void setUp(void)

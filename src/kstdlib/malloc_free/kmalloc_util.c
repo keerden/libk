@@ -315,7 +315,7 @@ void kmalloc_tree_remove(ktchunk_ptr chunk, ktchunk_ptr *root) {
 ktchunk_ptr kmalloc_tree_get_best_fit(size_t size, ktchunk_ptr root, int depth){
 
     ktchunk_ptr cur, parent, smallest_chunk = NULL;
-    size_t smallest_size;    
+    size_t smallest_size = MAX_SIZE_T;    
 
     if(depth <= 0 || root == NULL)
         return NULL;
