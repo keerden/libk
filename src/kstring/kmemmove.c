@@ -12,18 +12,21 @@
  * The memmove function returns the value of s1.
  ***/
 
-
-void* memmove(void* s1, const void* s2, size_t n)
+void *kmemmove(void *s1, const void *s2, size_t n)
 {
-	unsigned char* d = (unsigned char*) s1;
-	const unsigned char* s = (const unsigned char*) s2;
+	unsigned char *d = (unsigned char *)s1;
+	const unsigned char *s = (const unsigned char *)s2;
 	if (s1 < s2)
-		while(n--)
+	{
+		while (n--)
 			*d++ = *s++;
+	}
 	else
+	{
 		d += n - 1;
 		s += n - 1;
-		while(n--)
+		while (n--)
 			*d-- = *s--;
+	}
 	return s1;
 }

@@ -104,13 +104,25 @@ test: build-tests
 	 	$$test;						\
 		if [ $$? -ne 0 ];			\
 			then X=1; 				\
+			break;					\
 		fi;							\
 	done; 							\
 	exit $$X						
 
+test-all: build-tests
+	@ X=0;							\
+	 for test in $(TEST_TARGETS); 	\
+	 do 							\
+	 	$$test;						\
+		if [ $$? -ne 0 ];			\
+			then X=1; 				\
+		fi;							\
+	done; 							\
+	exit $$X	
+
 build-tests: debug $(TEST_TARGETS)
 
-$(TESTDIR)/%.test: $(TESTDIR)/%.c $(TESTDIR)/%.runner.c $(TESTAUXFILES) $(TESTHFILES) 
+$(TESTDIR)/%.test: $(TESTDIR)/%.c $(TESTDIR)/%.runner.c $(TESTAUXFILES) $(TESTHFILES) $(DEBUGLIB)
 	@$(CC) $(TEST_CFLAGS) $(UNITYDIR)/src/unity.c $(TESTAUXFILES) $< $(word 2,$^)  $(DEBUGLIB_CC)  -o $@
 
 $(TESTDIR)/%.runner.c: $(TESTDIR)/%.c $(TESTHFILES) 
@@ -123,4 +135,4 @@ $(TESTDIR)/%.runner.c: $(TESTDIR)/%.c $(TESTHFILES)
 -include $(DEBUG_DEPFILES)
 
 
-.PHONY: all debug test clean clean-src clean-debug clean-all clean-all-tests  clean-all-debug clean-all-src  build-tests 
+.PHONY: all debug test test-all clean clean-src clean-debug clean-all clean-all-tests  clean-all-debug clean-all-src  build-tests 
