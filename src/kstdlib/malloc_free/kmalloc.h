@@ -1,8 +1,8 @@
 #ifndef __KMALLOC
 #define __KMALLOC
 
-#include <stdint.h>
-#include <stddef.h>
+#include <kstdint.h>
+#include <kstddef.h>
 
 
 
@@ -133,9 +133,6 @@ void  __KMALlOC_SET_ABORT_CALLBACK(void (*callback) (void));
 
 
 void kmalloc_init(void *heap_addr, size_t heap_size);
-void* kmalloc (size_t size);
-void kfree(void *ptr);
-void *realloc( void *ptr, size_t new_size );
 
 struct kmalloc_state kmalloc_debug_getstate(void);
 

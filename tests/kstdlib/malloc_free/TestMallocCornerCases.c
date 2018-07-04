@@ -1,8 +1,11 @@
 #include "unity.h"
-#include "kstdlib/malloc_free/kmalloc.h"
-#include "kstdlib/malloc_free/kmalloc_util.h"
 #include "testsuite.h"
 #include <string.h>
+#include <stdio.h>
+
+#include <kstdlib.h>
+#include "kstdlib/malloc_free/kmalloc.h"
+#include "kstdlib/malloc_free/kmalloc_util.h"
 
 #define HEAPSIZE 9216
 

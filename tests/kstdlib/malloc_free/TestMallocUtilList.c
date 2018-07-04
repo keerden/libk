@@ -1,17 +1,12 @@
 #include "unity.h"
+#include "testsuite.h"
+#include <string.h>
+#include <stdio.h>
+
+#include <kstdlib.h>
 #include "kstdlib/malloc_free/kmalloc.h"
-#include "kstdlib/malloc_free/kmalloc_util.h" 
+#include "kstdlib/malloc_free/kmalloc_util.h"
 
-
-void setUp(void)
-{
-  /* This is run before EACH TEST */
-
-}
-
-void tearDown(void)
-{
-}
 
 void test_ListAddSingle(void)
 {

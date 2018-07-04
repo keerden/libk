@@ -1,5 +1,5 @@
-#ifndef _KSTDLIB_H
-#define _KSTDLIB_H 1
+#ifndef _KSTDDEF_H
+#define _KSTDDEF_H 1
 
 
 #ifdef __cplusplus

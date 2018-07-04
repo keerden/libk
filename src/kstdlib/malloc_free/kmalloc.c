@@ -1,11 +1,6 @@
-#include <stdio.h>
-#include <stdint.h>
+#include <kstdlib.h>
 #include "kmalloc.h"
 #include "kmalloc_util.h"
-
-#include <string.h>
-
-//void hexDump(char *desc, void *addr, int len) ;
 
 static struct kmalloc_state kmstate;
 
@@ -306,7 +301,7 @@ void kfree(void *ptr)
     }
 }
 
-void *realloc( void *ptr, size_t new_size ) {
+void *krealloc( void *ptr, size_t new_size ) {
     /*
         not implemented yet.
 

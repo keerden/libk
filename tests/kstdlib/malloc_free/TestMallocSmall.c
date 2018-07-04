@@ -1,8 +1,11 @@
 #include "unity.h"
-#include "kstdlib/malloc_free/kmalloc.h"
-#include "kstdlib/malloc_free/kmalloc_util.h"
 #include "testsuite.h"
 #include <string.h>
+#include <stdio.h>
+
+#include <kstdlib.h>
+#include "kstdlib/malloc_free/kmalloc.h"
+#include "kstdlib/malloc_free/kmalloc_util.h"
 
 #define HEAPSIZE 512
 
@@ -12,10 +15,6 @@ void setUp(void)
 {
     memset(heap, 0xAA, HEAPSIZE);
     kmalloc_init((void *)heap, HEAPSIZE);
-}
-
-void tearDown(void)
-{
 }
 
 void test_InitialHeap(void)

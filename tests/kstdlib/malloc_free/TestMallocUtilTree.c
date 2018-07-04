@@ -1,6 +1,12 @@
 #include "unity.h"
+#include "testsuite.h"
+#include <string.h>
+#include <stdio.h>
+
+#include <kstdlib.h>
 #include "kstdlib/malloc_free/kmalloc.h"
-#include "kstdlib/malloc_free/kmalloc_util.h" 
+#include "kstdlib/malloc_free/kmalloc_util.h"
+
 
 #define testTreeChunk(chunk, prnt,lft,rght,nxt,pre) { \
     TEST_ASSERT_EQUAL_PTR_MESSAGE((prnt), (chunk).parent, "parent field mismatch"); \
@@ -8,19 +14,6 @@
     TEST_ASSERT_EQUAL_PTR_MESSAGE((rght), (chunk).right, "right field mismatch");\
     TEST_ASSERT_EQUAL_PTR_MESSAGE((nxt), (chunk).next, "next field mismatch");\
     TEST_ASSERT_EQUAL_PTR_MESSAGE((pre), (chunk).prev, "prev field mismatch");\
-}
-
-
-
-
-void setUp(void)
-{
-  /* This is run before EACH TEST */
-
-}
-
-void tearDown(void)
-{
 }
 
 void test_TreeInsertSingle(void)
