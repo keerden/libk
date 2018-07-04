@@ -1,6 +1,6 @@
 .vscode/*
 build/*
-tests/*.test
+tests/**/*.test
 src/*.a
 src/*.o
 src/*.d
